@@ -19,6 +19,9 @@ var (
 func main() {
 	form := huh.NewForm(
 		huh.NewGroup(
+			huh.NewInput().
+				Title("Amount to convert:").
+				Value(&amount),
 			huh.NewSelect[string]().
 				Title("Currency From:").
 				Options(
