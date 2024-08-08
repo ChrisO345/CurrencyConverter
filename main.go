@@ -1,9 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
-	huh "github.com/charmbracelet/huh"
+	"github.com/charmbracelet/huh"
 	dotenv "github.com/joho/godotenv"
 	"io"
 	"io/ioutil"
@@ -43,7 +44,10 @@ func main() {
 	fmt.Println(currencyTo)
 	fmt.Println(amount)
 
-	apiCall()
+	body := apiCall()
+	// Free API Key, therefore base is always USD
+	data := decodeJson(body)
+	fmt.Println(data["rates"])
 }
 
 func makeForm() *huh.Form {
@@ -52,20 +56,20 @@ func makeForm() *huh.Form {
 			huh.NewSelect[string]().
 				Title("Starting Currency: ").
 				Options(
-					huh.NewOption("USD ($)", "usd"),
-					huh.NewOption("NZD ($)", "nzd"),
-					huh.NewOption("GBP (£)", "gbp"),
-					huh.NewOption("EUR (€)", "euro"),
+					huh.NewOption("USD ($)", "USD"),
+					huh.NewOption("NZD ($)", "NZD"),
+					huh.NewOption("GBP (£)", "GBP"),
+					huh.NewOption("EUR (€)", "EUR"),
 				).
 				Value(&currencyFrom),
 
 			huh.NewSelect[string]().
 				Title("Ending Currency").
 				Options(
-					huh.NewOption("USD ($)", "usd"),
-					huh.NewOption("NZD ($)", "nzd"),
-					huh.NewOption("GBP (£)", "gbp"),
-					huh.NewOption("EUR (€)", "euro"),
+					huh.NewOption("USD ($)", "USD"),
+					huh.NewOption("NZD ($)", "NZD"),
+					huh.NewOption("GBP (£)", "GBP"),
+					huh.NewOption("EUR (€)", "EUR"),
 				).
 				Value(&currencyTo).
 				Validate(func(str string) error {
@@ -92,7 +96,7 @@ func makeForm() *huh.Form {
 	return form
 }
 
-func apiCall() {
+func apiCall() []byte {
 	apiKey := os.Getenv("OPENEXCHANGERATES_API_KEY")
 	fmt.Println(apiKey)
 
@@ -118,5 +122,16 @@ func apiCall() {
 		log.Fatal(readErr)
 	}
 
-	fmt.Println(string(body))
+	return body
+}
+
+func decodeJson(body []byte) map[string]interface{} {
+	//json.Unmarshal()
+	var data map[string]interface{}
+
+	if err := json.Unmarshal(body, &data); err != nil {
+		log.Fatal(err)
+	}
+
+	return data
 }
