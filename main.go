@@ -40,14 +40,11 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fmt.Println(currencyFrom)
-	fmt.Println(currencyTo)
-	fmt.Println(amount)
-
 	body := apiCall()
 	// Free API Key, therefore base is always USD
 	data := decodeJson(body)
-	fmt.Println(data["rates"])
+	generateRatio(data["rates"].(map[string]interface{}))
+	fmt.Printf("Converted %.2f %s to %.2f %s\n", intAmount, currencyFrom, convertedAmount, currencyTo)
 }
 
 func makeForm() *huh.Form {
@@ -98,7 +95,6 @@ func makeForm() *huh.Form {
 
 func apiCall() []byte {
 	apiKey := os.Getenv("OPENEXCHANGERATES_API_KEY")
-	fmt.Println(apiKey)
 
 	url := "https://openexchangerates.org/api/latest.json?app_id=" + apiKey
 	req, err := http.NewRequest("GET", url, nil)
@@ -108,7 +104,7 @@ func apiCall() []byte {
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		fmt.Print(err.Error())
+		log.Fatal(err)
 	}
 	defer func(Body io.ReadCloser) {
 		err := Body.Close()
@@ -134,4 +130,17 @@ func decodeJson(body []byte) map[string]interface{} {
 	}
 
 	return data
+}
+
+func generateRatio(rates map[string]interface{}) {
+	if currencyFrom == "USD" {
+		convertedAmount = intAmount * rates[currencyTo].(float64)
+		return
+	}
+	if currencyTo == "USD" {
+		convertedAmount = intAmount / rates[currencyFrom].(float64)
+		return
+	}
+	convertedAmount = intAmount / rates[currencyFrom].(float64) * rates[currencyTo].(float64)
+	return
 }
