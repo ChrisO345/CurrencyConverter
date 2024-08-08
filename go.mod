@@ -7,6 +7,8 @@ require (
 	github.com/charmbracelet/huh v0.5.2
 )
 
+require github.com/joho/godotenv v1.5.1
+
 require (
 	github.com/atotto/clipboard v0.1.4 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect

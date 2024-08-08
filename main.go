@@ -4,7 +4,12 @@ import (
 	"errors"
 	"fmt"
 	huh "github.com/charmbracelet/huh"
+	dotenv "github.com/joho/godotenv"
+	"io"
+	"io/ioutil"
 	"log"
+	"net/http"
+	"os"
 	"strconv"
 )
 
@@ -12,18 +17,40 @@ var (
 	currencyFrom    string
 	currencyTo      string
 	amount          string
-	intAmount       int
+	intAmount       float64
 	convertedAmount float64
 )
 
 func main() {
+	err := dotenv.Load()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	form := makeForm()
+
+	err = form.Run()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	intAmount, err = strconv.ParseFloat(amount, 64)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println(currencyFrom)
+	fmt.Println(currencyTo)
+	fmt.Println(amount)
+
+	apiCall()
+}
+
+func makeForm() *huh.Form {
 	form := huh.NewForm(
 		huh.NewGroup(
-			huh.NewInput().
-				Title("Amount to convert:").
-				Value(&amount),
 			huh.NewSelect[string]().
-				Title("Currency From:").
+				Title("Starting Currency: ").
 				Options(
 					huh.NewOption("USD ($)", "usd"),
 					huh.NewOption("NZD ($)", "nzd"),
@@ -33,7 +60,7 @@ func main() {
 				Value(&currencyFrom),
 
 			huh.NewSelect[string]().
-				Title("Currency To:").
+				Title("Ending Currency").
 				Options(
 					huh.NewOption("USD ($)", "usd"),
 					huh.NewOption("NZD ($)", "nzd"),
@@ -43,7 +70,7 @@ func main() {
 				Value(&currencyTo).
 				Validate(func(str string) error {
 					if str == currencyFrom {
-						return errors.New("currency to cannot be the same as currency from")
+						return errors.New("starting and ending currency must be different")
 					}
 					return nil
 				}),
@@ -55,20 +82,41 @@ func main() {
 					if str == "" {
 						return errors.New("amount is required")
 					}
-					if _, err := strconv.Atoi(str); err != nil {
+					if _, err := strconv.ParseFloat(str, 64); err != nil {
 						return errors.New("amount must be a number")
 					}
 					return nil
 				}),
 		),
 	)
+	return form
+}
 
-	err := form.Run()
+func apiCall() {
+	apiKey := os.Getenv("OPENEXCHANGERATES_API_KEY")
+	fmt.Println(apiKey)
+
+	url := "https://openexchangerates.org/api/latest.json?app_id=" + apiKey
+	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fmt.Println(currencyFrom)
-	fmt.Println(currencyTo)
-	fmt.Println(amount)
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		fmt.Print(err.Error())
+	}
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}(res.Body)
+
+	body, readErr := ioutil.ReadAll(res.Body)
+	if readErr != nil {
+		log.Fatal(readErr)
+	}
+
+	fmt.Println(string(body))
 }

@@ -101,4 +101,5 @@ fabric.properties
 go.work
 
 /.idea/
+.env
 
